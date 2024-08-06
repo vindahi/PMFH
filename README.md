@@ -8,3 +8,11 @@ We recommend the following operating environment:
 - Pytorch == 1.8.1 + cu102
 - Torchvision == 0.9.1 +cu102
 - And other packages
+
+### END
+- bash flickr.sh
+- bash wiki.sh
+- bash nus.sh
+
+
+### Acknowledge
