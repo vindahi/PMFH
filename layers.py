@@ -9,9 +9,6 @@ import math
 class MLP(nn.Module):
     def __init__(self, hidden_dim=[1000, 2048, 512], act=nn.Tanh(), dropout=0.01):
         super(MLP, self).__init__()
-        #flickr 0,01
-        #nus 0.4
-        #coco 0.5
 
         self.input_dim = hidden_dim[0]
         self.hidden_dim = hidden_dim
@@ -94,7 +91,7 @@ class Layers(nn.Module):
         self.neck = nn.Sequential(
             nn.Linear(self.common_dim,self.common_dim*4),
             nn.ReLU(),
-            nn.Dropout(0.03),#nus 0.07 flickr 0.1
+            nn.Dropout(0.01),
             nn.Linear(self.common_dim*4,self.common_dim)
         )
 
