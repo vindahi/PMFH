@@ -41,39 +41,6 @@ def calculate_topk(qB, rB, query_label, retrieval_label, K):
     return p
 
 
-
-
-# def getdataset(args,data_path):
-#     file = h5py.File(data_path, 'r')
-#     train_X = file['I_tr'][:].T.astype(np.float32)
-#     train_Y = file['T_tr'][:].T.astype(np.float32)
-#     train_L = file['L_tr'][:].T.astype(int)
-#     query_X = file['I_te'][:].T.astype(np.float32)
-#     query_Y = file['T_te'][:].T.astype(np.float32)
-#     query_L = file['L_te'][:].T.astype(int)
-#     retrieval_X = file['I_db'][:].T.astype(np.float32)
-#     retrieval_Y = file['T_db'][:].T.astype(np.float32)
-#     retrieval_L = file['L_db'][:].T.astype(int)
-#     return train_L, train_X, train_Y, retrieval_L, retrieval_X, retrieval_Y, query_L, query_X, query_Y
-
-
-
-# def getdataset(args,data_path):
-#     file = sio.loadmat(data_path)
-#     train_X = file['I_tr'][:].astype(np.float32)
-#     train_Y = file['T_tr'][:].astype(np.float32)
-#     train_L = file['L_tr'][:].astype(int)
-#     retrieval_X = file['I_db'][:].astype(np.float32)
-#     retrieval_Y = file['T_db'][:].astype(np.float32)
-#     retrieval_L = file['L_db'][:].astype(int)
-#     query_X = file['I_te'][:].astype(np.float32)
-#     query_Y = file['T_te'][:].astype(np.float32)
-#     query_L = file['L_te'][:].astype(int)
-#     return train_L, train_X, train_Y, retrieval_L, retrieval_X, retrieval_Y, query_L, query_X, query_Y
-
-
-
-
 def getdataset(args, data_path):
     with h5py.File(data_path, 'r') as file:
         train_X = np.array(file['I_tr']).T.astype(np.float32)
