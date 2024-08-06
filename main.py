@@ -15,7 +15,7 @@ import scipy.io as sio
 import numpy as np
 
 
-class LocalUpdateDJSRH(object):
+class LocalUpdate(object):
     def __init__(self, args, id, dataset, idxs, idcs_retrieval, idcs_query):
         self.dataset = dataset
         self.m_size = len(idxs)
@@ -48,8 +48,7 @@ class LocalUpdateDJSRH(object):
                 B = torch.sign(H)
                 lb = loss_mse(B, H)
                 bal_loss = (torch.sum(B) / B.size(0))
-                loss = clf_loss * args.aa + similarity_loss * args.bb + lb * args.cc + bal_loss * args.dd
-                loss = clf_loss * args.aa + similarity_loss * args.bb + bal_loss * args.dd
+                loss = similarity_loss * args.bb + lb * args.cc
                 optimizer_private.zero_grad()
                 loss.backward()
                 clip_grad_norm_(private_modal.parameters(), 1.)
@@ -74,7 +73,7 @@ class LocalUpdateDJSRH(object):
                 Bg = torch.sign(Hg)
                 lb = loss_mse(Hg, Bg)
                 bal_loss = (torch.sum(Bg) / Bg.size(0))
-                loss = clf_loss * args.aa + Lr * args.bb + lb * args.cc + bal_loss * args.dd
+                loss = Lr * args.bb + lb * args.cc
 
                 kd_loss = 0
                 loss_cont = 0
@@ -160,104 +159,8 @@ class LocalTest(object):
         qu_B = np.array(qu_B)
         qu_L = np.array(qu_L)
         map = calculate_map(qu_B=qu_B, re_B=re_B, qu_L=qu_L, re_L=re_L)
-        # _dict = {
-        #     'retrieval_B': re_B.astype(np.int8),
-        #     'val_B': qu_B.astype(np.int8),
-        #     'L_db': re_L,
-        #     'L_te': qu_L
-        # }
-        # sava_path = 'ACCV_' + str(args.bit) + '_' + args.dataset + '_bits.mat'
-        # sio.savemat(sava_path, _dict)
         return map
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--mlpdrop', type=float, default=0.01)
-    parser.add_argument("--classes", type=int, default=24, help="classes")
-    parser.add_argument('--rounds', type=int, default=100, help="number of rounds of training")
-    parser.add_argument('--train_ep', type=int, default=10, help="the number of local episodes: E")
-    parser.add_argument('--train_ep_private', type=int, default=10, help="the number of local episodes: E")
-    parser.add_argument('--bit', type=int, default=16, help="hash code length")
-    parser.add_argument('--num_users', type=int, default=10, help="number of users: K")
-    parser.add_argument('--batch_size', type=int, default=1024, help="local batch size")
-    parser.add_argument('--learning_rate', type=float, default=1e-5, metavar='N',help='learning_rate')#1e-51e-5
-    parser.add_argument('--weight_decay', default=1e-6, type=float, help='weight_decay')
-    parser.add_argument('--device', default="cuda", type=str, help="cpu, cuda, or others")
-    parser.add_argument('--dataset', type=str, default='mir', help="name of dataset, e.g. MIR-FLICKR25K")
-    parser.add_argument('--image_dim', type=int, default=4096)
-    parser.add_argument('--text_dim', type=int, default=1386)
-    parser.add_argument('--aa', type=float, default=0.000001)
-    parser.add_argument('--bb', type=float, default=0.01)
-    parser.add_argument('--cc', type=float, default=0.001)
-    parser.add_argument('--dd', type=float, default=1)
-    parser.add_argument('--ee', type=float, default=0.001)
-    parser.add_argument('--ff', type=float, default=1)
-    parser.add_argument('--img_hidden_dim', type=list, default=[2048, 128])
-    parser.add_argument('--txt_hidden_dim', type=list, default=[2048, 128])
-    args = parser.parse_args()
-
-    args.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    seed_setting(1024)
-    logName = args.dataset + '_' + str(args.bit) + '_' + str(args.rounds)
-    log = logger(logName)
-    # log.info('aa: %s' % (args.aa))
-    # log.info('bb: %s' % (args.bb))
-    # log.info('cc: %s' % (args.cc))
-    # log.info('dd: %s' % (args.dd))
-    # log.info('ee: %s' % (args.ee))
-    # log.info('ff: %s' % (args.ff))
-    
-    datasetall, client_idcs_train, client_idcs_retrieval, client_idcs_qery = prepare_data_noniid(args=args)
-    args.img_hidden_dim.insert(0, args.image_dim)
-    args.txt_hidden_dim.insert(0, args.text_dim)
-    private_modal_list = []
-    for _ in range(args.num_users):
-        private_modal = Layers(args=args)
-        private_modal_list.append(private_modal)
-    global_modal = Layers(args=args)
-
-    global_avg_protos = {}
-    global_protos = {}
-    local_protos = {}
-    best = 0.0
-    for round in range(args.rounds):
-        log.info(f'Training Round : {round} ')
-        idxs_users = np.arange(args.num_users)
-        local_weights = []
-        private_weights = []
-        local_prototype_dicts = []
-        with tqdm(range(args.num_users)) as t:
-            for idx in t:
-                local_model = LocalUpdateDJSRH(args=args, id=idx, dataset=datasetall, idxs=client_idcs_train[idx], idcs_retrieval = client_idcs_retrieval, idcs_query = client_idcs_qery)
-                w_global, w_private, protos = local_model.update_weights_UCCH_new(args, global_protos, global_avg_protos, model_img=global_modal, private_modal = private_modal_list[idx])
-
-                agg_protos = agg_func(protos)
-                local_protos[idx] = copy.deepcopy(agg_protos)
-
-                local_weights.append(w_global)
-                private_weights.append(w_private)
-
-            local_weights_list = average_weights(local_weights)
-            global_avg_protos = proto_aggregation(local_protos)
-            global_protos = copy.deepcopy(local_protos)
-
-            for idx in idxs_users:
-                private_modal_list[idx].load_state_dict(private_weights[idx])
-            global_modal.load_state_dict(local_weights_list[0], strict=True)
-            if round % 1 == 0:
-                with torch.no_grad():
-                    map_all = 0.0
-                    topk_all = []
-                    for idx in range(args.num_users):
-                        local_test = LocalTest(args=args, id=idx, dataset=datasetall, idxs = client_idcs_train[idx], idcs_retrieval = client_idcs_retrieval, idcs_query = client_idcs_qery)
-                        local_model = global_modal
-                        map = local_test.test_and_eval(idx, args, local_model)
-                        map_all += map
-                    map_ave = map_all / args.num_users
-                    log.info(f'  Global Round : {round}  MAP: {map_ave:.4f} ')
-                    if map_ave > best:
-                        best = map_ave
-                        log.info(f'**********Save the best successfully.**********')
 
                         
     
