@@ -8,11 +8,13 @@ We recommend the following operating environment:
 - Pytorch == 1.8.1 + cu102
 - Torchvision == 0.9.1 +cu102
 - And other packages
+- GPUs(NVIDIA RTX 3090).
 
-### END
+### Datasets
+https://pan.baidu.com/s/1ZoF80Q2ajxRWH4VPl7KEZA code：xpl3
+
+### End
 - bash flickr.sh
-- bash wiki.sh
-- bash nus.sh
 
 
 ### Acknowledge
