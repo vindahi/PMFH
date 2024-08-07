@@ -2,6 +2,9 @@
 Learning Together Securely: Prototype-based Federated Multi-modal Hashing for Safe and Efficient Multi-modal Retrieval
 
 
+### Modal
+Please find MODAL.pdf
+
 ### Recommendation
 We recommend the following operating environment:
 - Python == 3.6.x
